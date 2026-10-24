@@ -23,9 +23,11 @@ term_colors = {
     "reset": "\033[0m",
 }
 
+
 def printc(text, color="white", **kwargs):
     text = f"{term_colors[color]}{text}{term_colors['reset']}"
     print(text, **kwargs)
+
 
 def make_filename(raw_name: str, raw_ext: str) -> str:
     """

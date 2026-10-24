@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 
 from utils.drawing import *
-from utils.recipient import Recipient, read_addresses_from_txt 
+from utils.recipient import Recipient, read_addresses_from_txt, str_to_recipient
 from utils.misc import make_filename, printc
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -285,31 +285,34 @@ def main():
     print(f"{"Using input file:":30s}\033[36m{input_file.resolve()}\033[0m")
     print(f"{"Writing to output folder:":30s}\033[36m{output_path.resolve()}\033[0m")
 
-    recipients: list[Recipient] = []
 
     return_address = None
-    return_file = Path(args.return_address)
-    if return_file:
-        with open(return_file, "r", encoding="utf-8") as file:
-            return_address = file.read()
-        print(f"{"Using return address from:":30s}\033[36m{return_file.resolve()}\033[0m")
+    if args.return_address:
+        return_file = Path(args.return_address)
+        if return_file.exists():
+            with open(return_file, "r", encoding="utf-8") as file:
+                return_address = file.read()
+            print(f"{"Using return address from:":30s}\033[36m{return_file.resolve()}\033[0m")
+        else:
+            print(f"{"Using return address from:":30s}\033[31m{return_file.resolve()} NOT FOUND!\033[0m")
+    else:
+        print(f"{"Using return address from:":30s}\033[33mNo return address\033[0m")
+
+    if args.do_not_bend:
+        print(f"{"\"Please, do not bend\" stamp:":30s}\033[32mYes\033[0m")
+    else:
+        print(f"{"\"Please, do not bend\" stamp:":30s}\033[31mNo\033[0m")
 
     print("")
 
-    if args.input_file:
-        recipients = read_addresses_from_txt(args.input_file)
+    recipients: list[Recipient]
+
+    if input_file.exists():
+        recipients = read_addresses_from_txt(input_file)
     else:
-        import tkinter as tk
-
-        input("Copy the address to your clipboard, then press <ENTER>")
-        root = tk.Tk()
-        root.withdraw()  # Keep the window hidden
-        text = root.clipboard_get()
-        root.destroy()
-        print(text)
-
-        r = str_to_recipient(text)
-        recipients.append(r)
+        printc("No input file detected", "yellow")
+        recipients = read_address_from_shell()
+        
 
     for recipient in recipients:
         make_envelope(
@@ -318,6 +321,21 @@ def main():
             do_not_bend_stamp=args.do_not_bend,
             return_address=return_address,
         )
+
+def read_address_from_shell() -> list[Recipient]:
+    print("Paste address here, then send an empty line")
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == "":
+            break
+        lines.append(line)
+    text = "\n".join(lines)
+
+    print("Got input:")
+    printc(text, "cyan")
+
+    return [str_to_recipient(text)]
 
 if __name__ == "__main__":
     main()

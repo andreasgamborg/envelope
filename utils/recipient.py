@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from .misc import printc
 
 @dataclass
 class Recipient:
@@ -29,9 +30,10 @@ def str_to_recipient(s) -> Recipient:
             "red",
         )
         raise ValueError(
-            "Use 4-5 line per recipient (name, [co], street, city, country)"
+            "Use 4-5 lines per recipient (name, [co], street, city, country)"
         )
     return Recipient(name, co, street, city, country)
+
 
 def read_addresses_from_txt(filename) -> list[Recipient]:
     """
