@@ -17,6 +17,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 ENVELOPE_IMG = SCRIPT_DIR / "resources" / "envelope.png"
 QR_IMG = SCRIPT_DIR / "resources" / "qr-code.png"
 
+
 def make_envelope(
     output_path: Path,
     recipient: Recipient,
@@ -54,6 +55,7 @@ def make_envelope(
     square_br = (square_side, excess_height)
 
     envelope_width = sqrt(2 * half_side**2)
+    bl = envelope_width / 8.0  # base length
 
     # ------------------------------------------------------------
     # Envelope Back
@@ -73,10 +75,10 @@ def make_envelope(
     pdf.drawCentredString(
         square_side / 2.0,
         excess_height - 12 * mm,
-        "SELF-FOLD ENVELOPE TEMPLATE",
+        "FOLD-IT-YOURSELF ENVELOPE TEMPLATE",
     )
 
-    pdf.setFont("Helvetica", 8)
+    pdf.setFont("Helvetica", 10)
     pdf.drawCentredString(
         square_side / 2.0,
         excess_height - 17 * mm,
@@ -85,54 +87,59 @@ def make_envelope(
 
     draw_cut_line(pdf, 0, excess_height, square_side, excess_height)
 
-    draw_guide_line(pdf, *square_tm, *square_bm)
-    draw_guide_line(pdf, *square_ml, *square_mr)
-    draw_guide_line(pdf, *square_bl, *square_tr)
-
     draw_fold_line(pdf, *square_ml, *square_tm)
     draw_fold_line(pdf, *square_mr, *square_bm)
 
     pdf.saveState()
-    pdf.setFont("Helvetica", 8)
     pdf.translate(*square_mm)
     pdf.rotate(-45)
 
-    pdf.drawString(2 * mm, 80 * mm, "Top")
-    draw_guide_line(pdf, -20 * mm, envelope_width / 2.0, 20 * mm, envelope_width / 2.0)
-    pdf.drawString(2 * mm, -80 * mm, "Bottom")
-    draw_fold_line(
-        pdf,
-        -envelope_width / 2.0,
-        -envelope_width / 4.0,
-        envelope_width / 2,
-        -envelope_width / 4.0,
-    )
+    pdf.setFont("Helvetica", 12)
+    pdf.drawCentredString(0, 7 * bl, "Top")
+    pdf.drawCentredString(0, -7 * bl, "Bottom")
 
-    draw_fold_line(
-        pdf,
-        -40 * mm,
-        -5 * envelope_width / 8.0,
-        40 * mm,
-        -5 * envelope_width / 8.0,
-    )
+    # Horizontal fold line
+    draw_fold_line(pdf, -4 * bl, -2 * bl, 4 * bl, -2 * bl)
+    draw_fold_line(pdf, -3 * bl, -5 * bl, 3 * bl, -5 * bl)
 
-    x =  5*mm
-    y =  -5*mm
+    # Sides of tounge
+    draw_fold_line(pdf, 4 * bl, -2 * bl, bl, -5 * bl)
+    draw_fold_line(pdf, -4 * bl, -2 * bl, -1 * bl, -5 * bl)
+
+    # step 1 and step 2
+    draw_test_bubble(pdf, -1 * bl, 0, "1")
+    draw_test_bubble(pdf, 1 * bl, 0, "2")
+    draw_guide_line(pdf, -bl, -bl, bl, bl)
+    draw_guide_line(pdf, bl, -bl, -bl, bl)
+    # step 3
+    draw_test_bubble(pdf, 0, 3 * bl, "3")
+    draw_guide_line(pdf, 0, -2 * bl, -bl, -3 * bl)
+    draw_guide_line(pdf, 0, -2 * bl, bl, -3 * bl)
+    # step 4
+    draw_test_bubble(pdf, 0, -3 * bl, "4")
+    draw_guide_line(pdf, 0, 4 * bl, bl, 3 * bl)
+    draw_guide_line(pdf, 0, 4 * bl, -bl, 3 * bl)
+    # step 5 and step 6
+    draw_test_bubble(pdf, -3 * bl, -4 * bl, "5")
+    draw_test_bubble(pdf, 3 * bl, -4 * bl, "6")
+    draw_guide_line(pdf, bl, -3 * bl, 2 * bl, -2 * bl)
+    draw_guide_line(pdf, -bl, -3 * bl, -2 * bl, -2 * bl)
+
     pdf.drawImage(
         QR_IMG,
-        x,
-        y,
-        width=30 * mm,
-        height=30 * mm,
+        -3 * bl / 4.0,
+        3 * bl / 4.0,
+        width=1.5 * bl,
+        height=1.5 * bl,
         preserveAspectRatio=True,
         mask="auto",
     )
-    pdf.drawString(
-        x,
-        y-2*mm,
-        "https://github.com/andreasgamborg/envelope",
+    pdf.setFont("Helvetica", 10)
+    pdf.drawCentredString(
+        0,
+        9 / 4.0 * bl,
+        "github.com/andreasgamborg/envelope",
     )
-
 
     pdf.restoreState()
 
@@ -146,35 +153,27 @@ def make_envelope(
 
     pdf.setFont("Helvetica", 12)
     pdf.drawString(name_x, row1_y, "Cut line")
-    draw_cut_line(pdf,line_x, row1_y, line_x + check_width, row1_y)
+    draw_cut_line(pdf, line_x, row1_y, line_x + check_width, row1_y)
     pdf.drawString(name_x, row2_y, "Fold line")
-    draw_fold_line(pdf,line_x, row2_y, line_x + check_width, row2_y)
-    pdf.drawString(name_x,row3_y, "Guide line")
-    draw_guide_line(pdf,line_x, row3_y, line_x + check_width, row3_y)
+    draw_fold_line(pdf, line_x, row2_y, line_x + check_width, row2_y)
+    pdf.drawString(name_x, row3_y, "Guide line")
+    draw_guide_line(pdf, line_x, row3_y, line_x + check_width, row3_y)
 
-
-    # pdf.setFont("Helvetica", 8)
-    # pdf.drawCentredString(
-    #     check_x + check_width / 2.0,
-    #     low_line,
-    #     "50 mm scale check",
-    # )
-
-    qr_x = 140 * mm
+    qr_x = 135 * mm
     pdf.drawImage(
         QR_IMG,
         qr_x,
-        low_line + 2*mm,
+        low_line + 4 * mm,
         width=50 * mm,
         height=50 * mm,
         preserveAspectRatio=True,
         mask="auto",
     )
-    pdf.setFont("Helvetica", 8)
+    pdf.setFont("Helvetica", 10)
     pdf.drawString(
         qr_x,
         low_line,
-        "https://github.com/andreasgamborg/envelope",
+        "github.com/andreasgamborg/envelope",
     )
 
     pdf.showPage()
@@ -194,18 +193,35 @@ def make_envelope(
 
     draw_fold_line(
         pdf,
-        -envelope_width / 2.0,
-        envelope_width / 2.0 - 10 * mm,
-        envelope_width / 2.0,
-        envelope_width / 2.0 - 10 * mm,
+        -4 * bl,
+        4 * bl - 10 * mm,
+        4 * bl,
+        4 * bl - 10 * mm,
     )
     draw_fold_line(
         pdf,
-        -envelope_width / 2.0,
-        -envelope_width / 4.0,
-        envelope_width / 2.0,
-        -envelope_width / 4.0,
+        -6 * bl,
+        -2 * bl,
+        6 * bl,
+        -2 * bl,
     )
+    draw_fold_line(
+        pdf,
+        -3 * bl,
+        -5 * bl,
+        3 * bl,
+        -5 * bl,
+    )
+
+    # Wrap fold lines
+    draw_fold_line(pdf, -4 * bl, -2 * bl, -5 * bl, -3 * bl)
+    draw_fold_line(pdf, 4 * bl, -2 * bl, 5 * bl, -3 * bl)
+    draw_fold_line(pdf, -1 * bl, -5 * bl, -2 * bl, -6 * bl)
+    draw_fold_line(pdf, 1 * bl, -5 * bl, 2 * bl, -6 * bl)
+
+    # Wrap guide lines
+    draw_guide_line(pdf, -bl, -5 * bl, -bl, -7 * bl)
+    draw_guide_line(pdf, bl, -5 * bl, bl, -7 * bl)
 
     reci = [recipient.name]
     if recipient.co:
@@ -233,7 +249,7 @@ def make_envelope(
 
     # Outer border and inset border
     if do_not_bend_stamp:
-        please_do_not_bend_stamp(pdf,0,0)
+        please_do_not_bend_stamp(pdf, 0, 0)
 
     pdf.restoreState()
 
@@ -252,6 +268,7 @@ def make_envelope(
     pdf.showPage()
     pdf.save()
     printc("DONE!", "green")
+
 
 def main():
 
@@ -285,16 +302,19 @@ def main():
     print(f"{"Using input file:":30s}\033[36m{input_file.resolve()}\033[0m")
     print(f"{"Writing to output folder:":30s}\033[36m{output_path.resolve()}\033[0m")
 
-
     return_address = None
     if args.return_address:
         return_file = Path(args.return_address)
         if return_file.exists():
             with open(return_file, "r", encoding="utf-8") as file:
                 return_address = file.read()
-            print(f"{"Using return address from:":30s}\033[36m{return_file.resolve()}\033[0m")
+            print(
+                f"{"Using return address from:":30s}\033[36m{return_file.resolve()}\033[0m"
+            )
         else:
-            print(f"{"Using return address from:":30s}\033[31m{return_file.resolve()} NOT FOUND!\033[0m")
+            print(
+                f"{"Using return address from:":30s}\033[31m{return_file.resolve()} NOT FOUND!\033[0m"
+            )
     else:
         print(f"{"Using return address from:":30s}\033[33mNo return address\033[0m")
 
@@ -312,7 +332,6 @@ def main():
     else:
         printc("No input file detected", "yellow")
         recipients = read_address_from_shell()
-        
 
     for recipient in recipients:
         make_envelope(
@@ -321,6 +340,7 @@ def main():
             do_not_bend_stamp=args.do_not_bend,
             return_address=return_address,
         )
+
 
 def read_address_from_shell() -> list[Recipient]:
     print("Paste address here, then send an empty line")
@@ -336,6 +356,7 @@ def read_address_from_shell() -> list[Recipient]:
     printc(text, "cyan")
 
     return [str_to_recipient(text)]
+
 
 if __name__ == "__main__":
     main()

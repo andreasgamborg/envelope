@@ -1,5 +1,6 @@
 from reportlab.lib import colors
 from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas
 
 def draw_multiline_text(
     pdf,
@@ -20,7 +21,7 @@ def draw_multiline_text(
     return y
 
 
-def draw_fold_line(pdf, x1, y1, x2, y2):
+def draw_fold_line(pdf: canvas.Canvas, x1, y1, x2, y2):
     """Draw a dashed fold guide line."""
     pdf.saveState()
     pdf.setDash()
@@ -30,7 +31,7 @@ def draw_fold_line(pdf, x1, y1, x2, y2):
     pdf.restoreState()
 
 
-def draw_guide_line(pdf, x1, y1, x2, y2):
+def draw_guide_line(pdf: canvas.Canvas, x1, y1, x2, y2):
     """Draw a dashed fold guide line."""
     pdf.saveState()
     pdf.setDash(8, 4)
@@ -40,7 +41,7 @@ def draw_guide_line(pdf, x1, y1, x2, y2):
     pdf.restoreState()
 
 
-def draw_cut_line(pdf, x1, y1, x2, y2):
+def draw_cut_line(pdf: canvas.Canvas, x1, y1, x2, y2):
     """Draw a solid cutting line."""
     pdf.saveState()
     pdf.setDash(4, 3)
@@ -49,7 +50,17 @@ def draw_cut_line(pdf, x1, y1, x2, y2):
     pdf.line(x1, y1, x2, y2)
     pdf.restoreState()
 
-def please_do_not_bend_stamp(pdf, x, y):
+def draw_test_bubble(pdf: canvas.Canvas, x, y, a: str):
+    """Draw a solid cutting line."""
+    pdf.saveState()
+    pdf.setLineWidth(1)
+    pdf.setStrokeColor(colors.black)
+    pdf.setFont("Helvetica", 14)
+    pdf.circle(x, y, 5*mm)
+    pdf.drawCentredString(x, y-4, a)
+    pdf.restoreState()
+
+def please_do_not_bend_stamp(pdf: canvas.Canvas, x, y):
     width = 44 * mm
     height = 20 * mm
     pdf.roundRect(x, y, width, height, 2 * mm, stroke=1, fill=0)
