@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 
 from utils.drawing import *
-from utils.recipient import Recipient, read_addresses_from_txt, str_to_recipient
+from utils.recipient import Recipient, read_addresses_from_txt, read_address_from_shell
 from utils.misc import make_filename, printc
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -19,16 +19,17 @@ QR_IMG = SCRIPT_DIR / "resources" / "qr-code.png"
 
 
 def make_envelope(
-    output_path: Path,
+    output_dir: Path,
     recipient: Recipient,
     return_address: str,
     do_not_bend_stamp: bool,
+    show_qr: bool,
 ):
     """
     Make a two sided A4 pdf which can be folded into an envelope
     """
     print(f"Making envelope for {recipient.name:<20s}")
-    output_file = output_path / make_filename(recipient.name, ".pdf")
+    output_file = output_dir / make_filename(recipient.name, ".pdf")
     if output_file.exists():
         printc(f"Overwriting file {output_file}", "yellow")
     pdf = canvas.Canvas(str(output_file), pagesize=A4)
@@ -125,21 +126,22 @@ def make_envelope(
     draw_guide_line(pdf, bl, -3 * bl, 2 * bl, -2 * bl)
     draw_guide_line(pdf, -bl, -3 * bl, -2 * bl, -2 * bl)
 
-    pdf.drawImage(
-        QR_IMG,
-        -3 * bl / 4.0,
-        3 * bl / 4.0,
-        width=1.5 * bl,
-        height=1.5 * bl,
-        preserveAspectRatio=True,
-        mask="auto",
-    )
-    pdf.setFont("Helvetica", 10)
-    pdf.drawCentredString(
-        0,
-        9 / 4.0 * bl,
-        "github.com/andreasgamborg/envelope",
-    )
+    if show_qr:
+        pdf.drawImage(
+            QR_IMG,
+            -3 * bl / 4.0,
+            3 * bl / 4.0,
+            width=1.5 * bl,
+            height=1.5 * bl,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+        pdf.setFont("Helvetica", 10)
+        pdf.drawCentredString(
+            0,
+            9 / 4.0 * bl,
+            "github.com/andreasgamborg/envelope",
+        )
 
     pdf.restoreState()
 
@@ -292,39 +294,41 @@ def main():
         action="store_true",
         help='Show "Please Do Not Bend" stamp on envelope',
     )
+    parser.add_argument(
+        "-q",
+        "--hide-qr",
+        action="store_false",
+        help="Hide promotional QR stamp on inside of envelope",
+    )
     args = parser.parse_args()
 
-    input_file = Path(args.input_file)
-    output_path = Path(args.output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    input_file: Path = Path(args.input_file).resolve()
+    output_dir: Path = Path(args.output_dir).resolve()
+    return_file: Path = None
 
-    print("Starting envelope generation")
-    print(f"{"Using input file:":30s}\033[36m{input_file.resolve()}\033[0m")
-    print(f"{"Writing to output folder:":30s}\033[36m{output_path.resolve()}\033[0m")
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     return_address = None
     if args.return_address:
-        return_file = Path(args.return_address)
+        return_file = Path(args.return_address).resolve()
         if return_file.exists():
             with open(return_file, "r", encoding="utf-8") as file:
                 return_address = file.read()
-            print(
-                f"{"Using return address from:":30s}\033[36m{return_file.resolve()}\033[0m"
-            )
-        else:
-            print(
-                f"{"Using return address from:":30s}\033[31m{return_file.resolve()} NOT FOUND!\033[0m"
-            )
-    else:
-        print(f"{"Using return address from:":30s}\033[33mNo return address\033[0m")
 
-    if args.do_not_bend:
-        print(f"{"\"Please, do not bend\" stamp:":30s}\033[32mYes\033[0m")
-    else:
-        print(f"{"\"Please, do not bend\" stamp:":30s}\033[31mNo\033[0m")
+    # Handel flag arguments
+    do_not_bend = args.do_not_bend
+    show_qr = args.hide_qr  # confusing, but correct due to "store_false"
 
-    print("")
+    # Print information on used paths and flags
+    show_input_information(
+        input_file,
+        output_dir,
+        return_file,
+        do_not_bend,
+        show_qr,
+    )
 
+    # Make the recipient list and make a envelope .pdf for each recipient
     recipients: list[Recipient]
 
     if input_file.exists():
@@ -335,27 +339,41 @@ def main():
 
     for recipient in recipients:
         make_envelope(
-            output_path=output_path,
+            output_dir=output_dir,
             recipient=recipient,
-            do_not_bend_stamp=args.do_not_bend,
             return_address=return_address,
+            do_not_bend_stamp=do_not_bend,
+            show_qr=show_qr,
         )
 
 
-def read_address_from_shell() -> list[Recipient]:
-    print("Paste address here, then send an empty line")
-    lines = []
-    while True:
-        line = input()
-        if line.strip() == "":
-            break
-        lines.append(line)
-    text = "\n".join(lines)
+def show_input_information(input_file, output_dir, return_file, do_not_bend, show_qr):
 
-    print("Got input:")
-    printc(text, "cyan")
+    print("Starting envelope generation")
+    print(f"{"Using input file:":30s}\033[36m{input_file}\033[0m")
+    print(f"{"Writing to output folder:":30s}\033[36m{output_dir}\033[0m")
 
-    return [str_to_recipient(text)]
+    if return_file:
+        if return_file.exists():
+            print(f"{"Using return address from:":30s}\033[36m{return_file}\033[0m")
+        else:
+            print(
+                f"{"Using return address from:":30s}\033[31m{return_file} NOT FOUND!\033[0m"
+            )
+    else:
+        print(f"{"Using return address from:":30s}\033[33mNo return address\033[0m")
+
+    if do_not_bend:
+        print(f"{"\"Please, do not bend\" stamp:":30s}\033[32mYes\033[0m")
+    else:
+        print(f"{"\"Please, do not bend\" stamp:":30s}\033[31mNo\033[0m")
+
+    if show_qr:
+        print(f"{"Show promotional QR:":30s}\033[32mYes\033[0m")
+    else:
+        print(f"{"Show promotional QR:":30s}\033[31mNo\033[0m")
+
+    print("")
 
 
 if __name__ == "__main__":

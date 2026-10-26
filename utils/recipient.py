@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from .misc import printc
 
+
 @dataclass
 class Recipient:
     name: str
@@ -60,3 +61,19 @@ def read_addresses_from_txt(filename) -> list[Recipient]:
         recipients.append(r)
 
     return recipients
+
+
+def read_address_from_shell() -> list[Recipient]:
+    print("Paste address here, then send an empty line")
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == "":
+            break
+        lines.append(line)
+    text = "\n".join(lines)
+
+    print("Got input:")
+    printc(text, "cyan")
+
+    return [str_to_recipient(text)]

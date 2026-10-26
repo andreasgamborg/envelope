@@ -1,6 +1,5 @@
 import re
 
-
 term_colors = {
     "black": "\033[30m",
     "red": "\033[31m",
@@ -10,7 +9,6 @@ term_colors = {
     "magenta": "\033[35m",
     "cyan": "\033[36m",
     "white": "\033[37m",
-
     "bright_black": "\033[90m",
     "bright_red": "\033[91m",
     "bright_green": "\033[92m",
@@ -19,7 +17,6 @@ term_colors = {
     "bright_magenta": "\033[95m",
     "bright_cyan": "\033[96m",
     "bright_white": "\033[97m",
-
     "reset": "\033[0m",
 }
 
