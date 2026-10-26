@@ -24,7 +24,7 @@ def make_envelope(
     recipient: Recipient,
     return_address: str,
     do_not_bend_stamp: bool,
-    show_qr: bool,
+    save_ink: bool,
 ):
     """
     Make a two sided A4 pdf which can be folded into an envelope
@@ -63,42 +63,13 @@ def make_envelope(
     # Envelope Back
     # ------------------------------------------------------------
 
-    pdf.drawImage(
-        ENVELOPE_IMG,
-        x=30 * mm,
-        y=excess_height - 20 * mm,
-        width=15 * mm,
-        height=15 * mm,
-        preserveAspectRatio=True,
-        mask="auto",
-    )
-
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawCentredString(
-        square_side / 2.0,
-        excess_height - 12 * mm,
-        "FOLD-IT-YOURSELF ENVELOPE TEMPLATE",
-    )
-
-    pdf.setFont("Helvetica", 10)
-    pdf.drawCentredString(
-        square_side / 2.0,
-        excess_height - 17 * mm,
-        "Print at 100% / actual size",
-    )
-
     draw_cut_line(pdf, 0, excess_height, square_side, excess_height)
-
     draw_fold_line(pdf, *square_ml, *square_tm)
     draw_fold_line(pdf, *square_mr, *square_bm)
 
     pdf.saveState()
     pdf.translate(*square_mm)
     pdf.rotate(-45)
-
-    pdf.setFont("Helvetica", 12)
-    pdf.drawCentredString(0, 7 * bl, "Top")
-    pdf.drawCentredString(0, -7 * bl, "Bottom")
 
     # Horizontal fold line
     draw_fold_line(pdf, -4 * bl, -2 * bl, 4 * bl, -2 * bl)
@@ -109,25 +80,34 @@ def make_envelope(
     draw_fold_line(pdf, -4 * bl, -2 * bl, -1 * bl, -5 * bl)
 
     # step 1 and step 2
-    draw_test_bubble(pdf, -1 * bl, 0, "1")
-    draw_test_bubble(pdf, 1 * bl, 0, "2")
     draw_guide_line(pdf, -bl, -bl, bl, bl)
     draw_guide_line(pdf, bl, -bl, -bl, bl)
     # step 3
-    draw_test_bubble(pdf, 0, 3 * bl, "3")
     draw_guide_line(pdf, 0, -2 * bl, -bl, -3 * bl)
     draw_guide_line(pdf, 0, -2 * bl, bl, -3 * bl)
     # step 4
-    draw_test_bubble(pdf, 0, -3 * bl, "4")
     draw_guide_line(pdf, 0, 4 * bl, bl, 3 * bl)
     draw_guide_line(pdf, 0, 4 * bl, -bl, 3 * bl)
     # step 5 and step 6
-    draw_test_bubble(pdf, -3 * bl, -4 * bl, "5")
-    draw_test_bubble(pdf, 3 * bl, -4 * bl, "6")
     draw_guide_line(pdf, bl, -3 * bl, 2 * bl, -2 * bl)
     draw_guide_line(pdf, -bl, -3 * bl, -2 * bl, -2 * bl)
 
-    if show_qr:
+    if not save_ink:
+
+        draw_test_bubble(pdf, -1 * bl, 0, "1")
+        draw_test_bubble(pdf, 1 * bl, 0, "2")
+        draw_test_bubble(pdf, 0, 3 * bl, "3")
+        draw_test_bubble(pdf, 0, -3 * bl, "4")
+        draw_test_bubble(pdf, -3 * bl, -4 * bl, "5")
+        draw_test_bubble(pdf, 3 * bl, -4 * bl, "6")
+
+        center_distance = 6.5 * bl
+        pdf.setFont("Helvetica", 12)
+        pdf.drawCentredString(0, center_distance, "Top")
+        pdf.drawCentredString(0, -center_distance, "Bottom")
+        pdf.drawCentredString(-center_distance, 0, "Left wing")
+        pdf.drawCentredString(center_distance, 0, "Right wing")
+
         pdf.drawImage(
             QR_IMG,
             -3 * bl / 4.0,
@@ -144,40 +124,66 @@ def make_envelope(
             "github.com/andreasgamborg/envelope",
         )
 
-    pdf.restoreState()
+        pdf.restoreState()
 
-    name_x = 15 * mm
-    line_x = 40 * mm
-    row1_y = 26 * mm
-    row2_y = 20 * mm
-    row3_y = 14 * mm
-    check_width = 70 * mm
-    low_line = 10 * mm
+        # Fill the cut off "slip" with information
 
-    pdf.setFont("Helvetica", 12)
-    pdf.drawString(name_x, row1_y, "Cut line")
-    draw_cut_line(pdf, line_x, row1_y, line_x + check_width, row1_y)
-    pdf.drawString(name_x, row2_y, "Fold line")
-    draw_fold_line(pdf, line_x, row2_y, line_x + check_width, row2_y)
-    pdf.drawString(name_x, row3_y, "Guide line")
-    draw_guide_line(pdf, line_x, row3_y, line_x + check_width, row3_y)
+        pdf.drawImage(
+            ENVELOPE_IMG,
+            x=30 * mm,
+            y=excess_height - 20 * mm,
+            width=15 * mm,
+            height=15 * mm,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
 
-    qr_x = 135 * mm
-    pdf.drawImage(
-        QR_IMG,
-        qr_x,
-        low_line + 4 * mm,
-        width=50 * mm,
-        height=50 * mm,
-        preserveAspectRatio=True,
-        mask="auto",
-    )
-    pdf.setFont("Helvetica", 10)
-    pdf.drawString(
-        qr_x,
-        low_line,
-        "github.com/andreasgamborg/envelope",
-    )
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawCentredString(
+            square_side / 2.0,
+            excess_height - 12 * mm,
+            "FOLD-IT-YOURSELF ENVELOPE TEMPLATE",
+        )
+
+        pdf.setFont("Helvetica", 10)
+        pdf.drawCentredString(
+            square_side / 2.0,
+            excess_height - 17 * mm,
+            "Print at 100% / actual size",
+        )
+
+        name_x = 15 * mm
+        line_x = 40 * mm
+        row1_y = 26 * mm
+        row2_y = 20 * mm
+        row3_y = 14 * mm
+        check_width = 70 * mm
+        low_line = 10 * mm
+
+        pdf.setFont("Helvetica", 12)
+        pdf.drawString(name_x, row1_y, "Cut line")
+        draw_cut_line(pdf, line_x, row1_y, line_x + check_width, row1_y)
+        pdf.drawString(name_x, row2_y, "Fold line")
+        draw_fold_line(pdf, line_x, row2_y, line_x + check_width, row2_y)
+        pdf.drawString(name_x, row3_y, "Guide line")
+        draw_guide_line(pdf, line_x, row3_y, line_x + check_width, row3_y)
+
+        qr_x = 135 * mm
+        pdf.drawImage(
+            QR_IMG,
+            qr_x,
+            low_line + 4 * mm,
+            width=50 * mm,
+            height=50 * mm,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(
+            qr_x,
+            low_line,
+            "github.com/andreasgamborg/envelope",
+        )
 
     pdf.showPage()
 
@@ -185,15 +191,16 @@ def make_envelope(
     # Envelope Front
     # ------------------------------------------------------------
 
-    pdf.drawImage(
-        INSTRUCTIONS_IMG,
-        x=0,
-        y=0,
-        width=page_width,
-        height=excess_height,
-        preserveAspectRatio=True,
-        mask="auto",
-    )
+    if not save_ink:
+        pdf.drawImage(
+            INSTRUCTIONS_IMG,
+            x=0,
+            y=0,
+            width=page_width,
+            height=excess_height,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
 
     draw_cut_line(pdf, 0, excess_height, square_side, excess_height)
     draw_fold_line(pdf, *square_tm, *square_mr)
@@ -305,10 +312,10 @@ def main():
         help='Show "Please Do Not Bend" stamp on envelope',
     )
     parser.add_argument(
-        "-q",
-        "--hide-qr",
-        action="store_false",
-        help="Hide promotional QR stamp on inside of envelope",
+        "-s",
+        "--save-ink",
+        action="store_true",
+        help="Only print the most essential",
     )
     args = parser.parse_args()
 
@@ -327,7 +334,7 @@ def main():
 
     # Handel flag arguments
     do_not_bend = args.do_not_bend
-    show_qr = args.hide_qr  # confusing, but correct due to "store_false"
+    save_ink = args.save_ink
 
     # Print information on used paths and flags
     show_input_information(
@@ -335,7 +342,7 @@ def main():
         output_dir,
         return_file,
         do_not_bend,
-        show_qr,
+        save_ink,
     )
 
     # Make the recipient list and make a envelope .pdf for each recipient
@@ -353,11 +360,11 @@ def main():
             recipient=recipient,
             return_address=return_address,
             do_not_bend_stamp=do_not_bend,
-            show_qr=show_qr,
+            save_ink=save_ink,
         )
 
 
-def show_input_information(input_file, output_dir, return_file, do_not_bend, show_qr):
+def show_input_information(input_file, output_dir, return_file, do_not_bend, save_ink):
 
     print("Starting envelope generation")
     print(f"{"Using input file:":30s}\033[36m{input_file}\033[0m")
@@ -373,15 +380,14 @@ def show_input_information(input_file, output_dir, return_file, do_not_bend, sho
     else:
         print(f"{"Using return address from:":30s}\033[33mNo return address\033[0m")
 
-    if do_not_bend:
-        print(f"{"\"Please, do not bend\" stamp:":30s}\033[32mYes\033[0m")
-    else:
-        print(f"{"\"Please, do not bend\" stamp:":30s}\033[31mNo\033[0m")
+    def info_line(b, s):
+        if b:
+            print(f"{s:30s}\033[32mYes\033[0m")
+        else:
+            print(f"{s:30s}\033[33mNo\033[0m")
 
-    if show_qr:
-        print(f"{"Show promotional QR:":30s}\033[32mYes\033[0m")
-    else:
-        print(f"{"Show promotional QR:":30s}\033[31mNo\033[0m")
+    info_line(do_not_bend, '"Please, do not bend" stamp:')
+    info_line(save_ink, "Use ink save mode")
 
     print("")
 
