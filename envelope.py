@@ -16,6 +16,7 @@ from utils.misc import make_filename, printc
 SCRIPT_DIR = Path(__file__).resolve().parent
 ENVELOPE_IMG = SCRIPT_DIR / "resources" / "envelope.png"
 QR_IMG = SCRIPT_DIR / "resources" / "qr-code.png"
+INSTRUCTIONS_IMG = SCRIPT_DIR / "resources" / "envelope_fold_instructions.png"
 
 
 def make_envelope(
@@ -184,14 +185,22 @@ def make_envelope(
     # Envelope Front
     # ------------------------------------------------------------
 
+    pdf.drawImage(
+        INSTRUCTIONS_IMG,
+        x=0,
+        y=0,
+        width=page_width,
+        height=excess_height,
+        preserveAspectRatio=True,
+        mask="auto",
+    )
+
     draw_cut_line(pdf, 0, excess_height, square_side, excess_height)
     draw_fold_line(pdf, *square_tm, *square_mr)
     draw_fold_line(pdf, *square_bm, *square_ml)
 
     pdf.translate(*square_mm)
     pdf.rotate(45)
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.saveState()
 
     draw_fold_line(
         pdf,
@@ -225,6 +234,7 @@ def make_envelope(
     draw_guide_line(pdf, -bl, -5 * bl, -bl, -7 * bl)
     draw_guide_line(pdf, bl, -5 * bl, bl, -7 * bl)
 
+    pdf.setFont("Helvetica-Bold", 14)
     reci = [recipient.name]
     if recipient.co:
         reci.append(recipient.co)
@@ -241,19 +251,19 @@ def make_envelope(
         leading=20,
     )
 
-    pdf.translate(80, -80)
-    pdf.rotate(10)
-
-    red = colors.HexColor("#B22222")
-    pdf.setStrokeColor(red)
-    pdf.setFillColor(red)
-    pdf.setLineWidth(1.5)
-
-    # Outer border and inset border
     if do_not_bend_stamp:
-        please_do_not_bend_stamp(pdf, 0, 0)
+        pdf.saveState()
+        pdf.translate(80, -80)
+        pdf.rotate(10)
 
-    pdf.restoreState()
+        red = colors.HexColor("#B22222")
+        pdf.setStrokeColor(red)
+        pdf.setFillColor(red)
+        pdf.setLineWidth(1.5)
+
+        # Outer border and inset border
+        please_do_not_bend_stamp(pdf, 0, 0)
+        pdf.restoreState()
 
     if return_address:
         pdf.rotate(180)
