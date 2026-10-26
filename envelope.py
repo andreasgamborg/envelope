@@ -291,7 +291,7 @@ def make_envelope(
 
 def main():
 
-    parser = argparse.ArgumentParser(description="Describe what your script does.")
+    parser = argparse.ArgumentParser(description="The envelope generation tool (github.com/andreasgamborg/envelope)")
     parser.add_argument(
         "-i",
         "--input_file",
